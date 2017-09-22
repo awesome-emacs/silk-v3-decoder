@@ -175,7 +175,7 @@ int main( int argc, char* argv[] )
     }
 
     /* Open files */
-    bitInFile = fopen( bitInFileName, "rb" );
+    bitInFile = stdin;
     if( bitInFile == NULL ) {
         printf( "Error: could not open input file %s\n", bitInFileName );
         exit( 0 );

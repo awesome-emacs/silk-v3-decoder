@@ -65,7 +65,7 @@ while [ $3 ]; do
 done
 
 # slk类型会产生pcm文件: `slk v3 file` => `xxx.slk.pcm`
-$cur_dir/silk/decoder "$1" "$1.pcm" > /dev/null 2>&1
+cat - | $cur_dir/silk/decoder aaabbb "$1.pcm" > /dev/null 2>&1
 
 # 普通类型(不需要pcm文件),如amr,直接调用ffmpeg转格式即可`./converter_pipe.sh aaa.amr aac`,然后exit
 # => 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii.amr aac`,文件保存到/tmp/xxx.aac
