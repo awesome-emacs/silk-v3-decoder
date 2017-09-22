@@ -32,56 +32,29 @@ cd $cur_dir
 
 # 批量处理slk的目录: ` Batch Conversion Start ` => 0log => 2log => ` Batch Conversion Finish`
 # `./converter_pipe.sh slk_dir . aac`
-while [ $3 ]; do
-	[[ ! -z "$(pidof ffmpeg)" ]]&&echo -e "${RED}[Error]${RESET} ffmpeg is occupied by another application, please check it."&&exit
-	[ ! -d "$1" ]&&echo -e "${RED}[Error]${RESET} Input folder not found, please check it."&&exit
-	TOTAL=$(ls $1|wc -l)
-	[ ! -d "$2" ]&&mkdir "$2"&&echo -e "${WHITE}[Notice]${RESET} Output folder not found, create it."
-	[ ! -d "$2" ]&&echo -e "${RED}[Error]${RESET} Output folder could not be created, please check it."&&exit
-	CURRENT=0
-	echo -e "${WHITE}========= Batch Conversion Start ==========${RESET}"
-	ls $1 | while read line; do
-		let CURRENT+=1
-		$cur_dir/silk/decoder "$1/$line" "$2/$line.pcm" > /dev/null 2>&1
-                echo -e "0-----------"
-		if [ ! -f "$2/$line.pcm" ]; then
-			ffmpeg -y -i "$1/$line" "$2/${line%.*}.$3" > /dev/null 2>&1 &
-                        echo -e "1-----------"
-                        ffmpeg_pid=$!
-			while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
-			[ -f "$2/${line%.*}.$3" ]&&echo -e "[$CURRENT/$TOTAL]${GREEN}[OK]${RESET} Convert $line to ${line%.*}.$3 success, ${YELLOW}but not a silk v3 encoded file.${RESET}"&&continue
-			echo -e "[$CURRENT/$TOTAL]${YELLOW}[Warning]${RESET} Convert $line false, maybe not a silk v3 encoded file."&&continue
-		fi
-                echo -e "2-----------"
-		ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$2/$line.pcm" "$2/${line%.*}.$3" > /dev/null 2>&1 &
-		ffmpeg_pid=$!
-		while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
-		rm "$2/$line.pcm"
-		[ ! -f "$2/${line%.*}.$3" ]&&echo -e "[$CURRENT/$TOTAL]${YELLOW}[Warning]${RESET} Convert $line false, maybe ffmpeg no format handler for $3."&&continue
-		echo -e "[$CURRENT/$TOTAL]${GREEN}[OK]${RESET} Convert $line To ${line%.*}.$3 Finish."
-	done
-	echo -e "${WHITE}========= Batch Conversion Finish =========${RESET}"
-	exit
-done
+# 删除 。。。
 
 # slk类型会产生pcm文件: `slk v3 file` => `xxx.slk.pcm`
-cat - | $cur_dir/silk/decoder aaabbb "$1.pcm" > /dev/null 2>&1
+if [ $2 = "slk" ]; then
+    cat - | $cur_dir/silk/decoder aaabbb "$1.pcm" > /dev/null 2>&1
+fi
+# echo "======="$0"===="$1"----"$2"*****"$3
+# =======./converter_pipe.sh====oooiii_filename----amr*****aac
+# cat aaa.amr | ./converter_pipe.sh oooiii_filename amr aac
 
 # 普通类型(不需要pcm文件),如amr,直接调用ffmpeg转格式即可`./converter_pipe.sh aaa.amr aac`,然后exit
-# => 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii.amr aac`,文件保存到/tmp/xxx.aac
+# => 1. 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii_filename amr aac`,文件保存到/tmp/xxx.aac
 if [ ! -f "$1.pcm" ]; then
-	cat - | ffmpeg -y -i pipe:0 "/tmp/""${1%.*}.$2" > /dev/null 2>&1 &
-	ffmpeg_pid=$!
-	while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
-	[ -f "${1%.*}.$2" ]&&echo -e "${GREEN}[OK]${RESET} Convert $1 to ${1%.*}.$2 success, ${YELLOW}but not a silk v3 encoded file.${RESET}"&&exit
-	echo -e "${YELLOW}[Warning]${RESET} Convert $1 false, maybe not a silk v3 encoded file."&&exit
+	cat - | ffmpeg -y -i pipe:0 "/tmp/""$1.$3" > /dev/null 2>&1 &
+        echo "ok!"
+        exit
 fi
 
 # 将`xxx.slk.pcm`文件转为其他格式,如aac
-ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$1.pcm" "${1%.*}.$2" > /dev/null 2>&1
+# => 2. 接受管道文件流` cat 63a1ba08-96c0-11e7-a76c-477c23d636ed.slk | ./converter_pipe.sh aiiioooo slk aac  `
+ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$1.pcm" "/tmp/""$1.$3" > /dev/null 2>&1
 ffmpeg_pid=$!
 while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
 rm "$1.pcm"
-[ ! -f "${1%.*}.$2" ]&&echo -e "${YELLOW}[Warning]${RESET} Convert $1 false, maybe ffmpeg no format handler for $2."&&exit
-echo -e "${GREEN}[OK]${RESET} Convert $1 To ${1%.*}.$2 Finish."
+echo "ok!"
 exit
