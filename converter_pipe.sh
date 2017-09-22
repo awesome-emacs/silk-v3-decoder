@@ -19,7 +19,7 @@ RESET="$(tput sgr 0 2>/dev/null || echo '\e[0m')"
 
 # Main
 cur_dir=$(cd `dirname $0`; pwd)
-
+# 首次使用时,编译生成silk/decoder文件
 if [ ! -r "$cur_dir/silk/decoder" ]; then
 	echo -e "${WHITE}[Notice]${RESET} Silk v3 Decoder is not found, compile it."
 	cd $cur_dir/silk
@@ -30,6 +30,8 @@ fi
 
 cd $cur_dir
 
+# 批量处理slk的目录: ` Batch Conversion Start ` => 0log => 2log => ` Batch Conversion Finish`
+# `./converter_pipe.sh slk_dir . aac`
 while [ $3 ]; do
 	[[ ! -z "$(pidof ffmpeg)" ]]&&echo -e "${RED}[Error]${RESET} ffmpeg is occupied by another application, please check it."&&exit
 	[ ! -d "$1" ]&&echo -e "${RED}[Error]${RESET} Input folder not found, please check it."&&exit
@@ -41,13 +43,16 @@ while [ $3 ]; do
 	ls $1 | while read line; do
 		let CURRENT+=1
 		$cur_dir/silk/decoder "$1/$line" "$2/$line.pcm" > /dev/null 2>&1
+                echo -e "0-----------"
 		if [ ! -f "$2/$line.pcm" ]; then
 			ffmpeg -y -i "$1/$line" "$2/${line%.*}.$3" > /dev/null 2>&1 &
-			ffmpeg_pid=$!
+                        echo -e "1-----------"
+                        ffmpeg_pid=$!
 			while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
 			[ -f "$2/${line%.*}.$3" ]&&echo -e "[$CURRENT/$TOTAL]${GREEN}[OK]${RESET} Convert $line to ${line%.*}.$3 success, ${YELLOW}but not a silk v3 encoded file.${RESET}"&&continue
 			echo -e "[$CURRENT/$TOTAL]${YELLOW}[Warning]${RESET} Convert $line false, maybe not a silk v3 encoded file."&&continue
 		fi
+                echo -e "2-----------"
 		ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$2/$line.pcm" "$2/${line%.*}.$3" > /dev/null 2>&1 &
 		ffmpeg_pid=$!
 		while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
@@ -69,6 +74,7 @@ if [ ! -f "$1.pcm" ]; then
 	[ -f "${1%.*}.$2" ]&&echo -e "${GREEN}[OK]${RESET} Convert $1 to ${1%.*}.$2 success, ${YELLOW}but not a silk v3 encoded file.${RESET}"&&exit
 	echo -e "${YELLOW}[Warning]${RESET} Convert $1 false, maybe not a silk v3 encoded file."&&exit
 fi
+
 ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$1.pcm" "${1%.*}.$2" > /dev/null 2>&1
 ffmpeg_pid=$!
 while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
