@@ -64,9 +64,11 @@ while [ $3 ]; do
 	exit
 done
 
-# 普通类型,如amr,直接调用ffmpeg转格式即可`./converter_pipe.sh aaa.amr aac`,然后exit
-# => 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii.amr aac`,文件保存到/tmp/xxx.aac
+# slk类型会产生pcm文件: `slk v3 file` => `xxx.slk.pcm`
 $cur_dir/silk/decoder "$1" "$1.pcm" > /dev/null 2>&1
+
+# 普通类型(不需要pcm文件),如amr,直接调用ffmpeg转格式即可`./converter_pipe.sh aaa.amr aac`,然后exit
+# => 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii.amr aac`,文件保存到/tmp/xxx.aac
 if [ ! -f "$1.pcm" ]; then
 	cat - | ffmpeg -y -i pipe:0 "/tmp/""${1%.*}.$2" > /dev/null 2>&1 &
 	ffmpeg_pid=$!
@@ -75,6 +77,7 @@ if [ ! -f "$1.pcm" ]; then
 	echo -e "${YELLOW}[Warning]${RESET} Convert $1 false, maybe not a silk v3 encoded file."&&exit
 fi
 
+# 将`xxx.slk.pcm`文件转为其他格式,如aac
 ffmpeg -y -f s16le -ar 24000 -ac 1 -i "$1.pcm" "${1%.*}.$2" > /dev/null 2>&1
 ffmpeg_pid=$!
 while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
