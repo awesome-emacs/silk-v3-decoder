@@ -59,9 +59,11 @@ while [ $3 ]; do
 	exit
 done
 
+# 普通类型,如amr,直接调用ffmpeg转格式即可`./converter_pipe.sh aaa.amr aac`,然后exit
+# => 接受管道的文件流`cat aaa.amr | ./converter_pipe.sh oooiii.amr aac`,文件保存到/tmp/xxx.aac
 $cur_dir/silk/decoder "$1" "$1.pcm" > /dev/null 2>&1
 if [ ! -f "$1.pcm" ]; then
-	ffmpeg -y -i "$1" "${1%.*}.$2" > /dev/null 2>&1 &
+	cat - | ffmpeg -y -i pipe:0 "/tmp/""${1%.*}.$2" > /dev/null 2>&1 &
 	ffmpeg_pid=$!
 	while kill -0 "$ffmpeg_pid"; do sleep 1; done > /dev/null 2>&1
 	[ -f "${1%.*}.$2" ]&&echo -e "${GREEN}[OK]${RESET} Convert $1 to ${1%.*}.$2 success, ${YELLOW}but not a silk v3 encoded file.${RESET}"&&exit
